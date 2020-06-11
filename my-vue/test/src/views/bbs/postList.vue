@@ -1,0 +1,106 @@
+<template>
+  <div>
+    <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+      <van-list v-model="loading" :finished="finished" finished-text="没有更多了..." @load="onLoad">
+        <newsItem
+          v-for="(item,key) in list"
+          :key="key"
+          :userName="item.CreateName"
+          :subInfo="''"
+          :content="item.PostTitle"
+          :picList="item.AttachmentList"
+          :overLength="100"
+          @click.native="onItemClick(item)"
+        ></newsItem>
+        <van-skeleton title avatar :row="4" :loading="skeletonLoading" />
+        <van-skeleton title avatar :row="4" :loading="skeletonLoading" />
+        <van-skeleton title avatar :row="4" :loading="skeletonLoading" />
+        <van-skeleton title avatar :row="4" :loading="skeletonLoading" />
+        <van-skeleton title avatar :row="4" :loading="skeletonLoading" />
+      </van-list>
+    </van-pull-refresh>
+  </div>
+</template>
+<script>
+import newsItem from "../../components/panel/newsItem";
+import bbsApis from "../../apis/post.js";
+export default {
+  name: "home",
+  components: { newsItem },
+  data() {
+    return {
+      rows: 10,
+      page: -1,
+      list: [],
+      loading: false,
+      finished: false,
+      refreshing: false,
+      skeletonLoading: false,
+      onLoadLock: false
+    };
+  },
+  created() {},
+  mounted() {},
+  methods: {
+    onLoad() {
+      if (!this.onLoadLock) {
+        this.onLoadLock = true;
+        let _this = this;
+        this.skeletonLoading = true;
+        this.loading = true;
+        this.page++;
+
+        this.getNewsList().then(
+          res => {
+            this.onLoadLock = false;
+            this.loading = false;
+            this.skeletonLoading = false;
+          },
+          err => {
+            this.onLoadLock = false;
+            this.loading = false;
+            this.skeletonLoading = false;
+            this.finished = true;
+          }
+        );
+      }
+    },
+    onRefresh() {
+      this.page = 0;
+      this.refreshing = true;
+      this.finished = false;
+      for (let i = 0; i < this.list.length; i++) {
+        this.list.shift();
+      }
+      this.getNewsList().then(res => {
+        this.refreshing = false;
+      });
+    },
+    getNewsList() {
+			let _this=this
+      return new Promise((resolve, reject) => {
+        bbsApis.getPostList(null, this.rows, this.page).then(res => {
+          if (res.length > 0) {
+            for (let item of res) {
+              _this.list.push(item);
+            }
+            resolve();
+          } else {
+            reject();
+          }
+        });
+      });
+    },
+    onItemClick(item) {
+      this.$router.push({
+        name: "postDetail",
+        query: {
+          postId: item.PostId
+        }
+      });
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+</style>
